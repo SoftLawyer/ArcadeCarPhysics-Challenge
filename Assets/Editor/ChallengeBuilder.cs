@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.IO;
 
 public class ChallengeBuilder : EditorWindow
 {
@@ -12,119 +13,186 @@ public class ChallengeBuilder : EditorWindow
     {
         if (EditorApplication.isPlaying)
         {
-            EditorUtility.DisplayDialog("Hata!", "Bu aracı çalıştırmadan önce lütfen Play (▶️) modundan çıkın (Mavi butonu kapatın).", "Tamam");
+            EditorUtility.DisplayDialog("Hata!", "Lütfen önce Play (▶️) modundan çıkın.", "Tamam");
             return;
         }
 
-        // YENİ ANA MENÜ SAHNESİ OLUŞTURMA
+        Debug.Log("=================================================================");
+        Debug.Log("🚀 [CHALLENGE BUILDER] Şehir ve Stunt Pisti İnşası Başlatılıyor...");
+
+        // 1. ANA MENÜ SAHNESİ
         Scene mainMenuScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         
-        // Kamera ekle
         GameObject mainCamera = new GameObject("Main Camera");
         Camera cam = mainCamera.AddComponent<Camera>();
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.2f, 0.2f, 0.2f);
+        cam.backgroundColor = new Color(0.12f, 0.12f, 0.14f);
         
-        // Canvas ekle
         GameObject canvasObj = new GameObject("Canvas");
         Canvas canvas = canvasObj.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvasObj.AddComponent<CanvasScaler>();
         canvasObj.AddComponent<GraphicRaycaster>();
         
-        // EventSystem ekle
         GameObject eventSystemObj = new GameObject("EventSystem");
         eventSystemObj.AddComponent<EventSystem>();
         eventSystemObj.AddComponent<StandaloneInputModule>();
 
-        // Buton ekle
         GameObject buttonObj = new GameObject("ChallengeButton");
         buttonObj.transform.SetParent(canvasObj.transform, false);
         RectTransform btnRect = buttonObj.AddComponent<RectTransform>();
-        btnRect.sizeDelta = new Vector2(300, 100);
+        btnRect.sizeDelta = new Vector2(340, 90);
         btnRect.anchoredPosition = Vector2.zero;
         Image btnImg = buttonObj.AddComponent<Image>();
-        btnImg.color = new Color(0.8f, 0.2f, 0.2f);
+        btnImg.color = new Color(0.85f, 0.15f, 0.15f);
         Button btn = buttonObj.AddComponent<Button>();
         
-        // Buton Metni ekle
         GameObject textObj = new GameObject("Text");
         textObj.transform.SetParent(buttonObj.transform, false);
         Text btnText = textObj.AddComponent<Text>();
         btnText.text = "CHALLENGE OYNA!";
         btnText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        btnText.fontSize = 24;
+        btnText.fontSize = 28;
         btnText.alignment = TextAnchor.MiddleCenter;
         btnText.color = Color.white;
         
-        // Butona tıklandığında çalışacak kod objesini ekle
         GameObject logicObj = new GameObject("MenuLogic");
         MainMenu menuLogic = logicObj.AddComponent<MainMenu>();
+        UnityEditor.Events.UnityEventTools.AddPersistentListener(btn.onClick, new UnityEngine.Events.UnityAction(menuLogic.StartChallenge));
         
-        // Event'i bağla
-        UnityEngine.Events.UnityAction action = new UnityEngine.Events.UnityAction(menuLogic.StartChallenge);
-        UnityEditor.Events.UnityEventTools.AddPersistentListener(btn.onClick, action);
-        
-        // Sahneyi kaydet
         string mainMenuPath = "Assets/Scenes/MainMenu.unity";
         EditorSceneManager.SaveScene(mainMenuScene, mainMenuPath);
 
-
-        // YENİ CHALLENGE SAHNESİ OLUŞTURMA
+        // 2. YENİ TEMİZ CHALLENGE SAHNESİ (Demo Sahnesi Yerine Kendi Şehrimizi Kuruyoruz!)
         Scene challengeScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-        
-        // Varsayılan kamerayı sil (çift Audio Listener hatasını önlemek için)
-        GameObject defaultCam = GameObject.Find("Main Camera");
-        if (defaultCam != null) Object.DestroyImmediate(defaultCam);
 
-        // Zemin oluştur (Araba y=0'da hareket etmeli)
-        GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        ground.name = "Ground";
-        ground.transform.position = new Vector3(0, -0.5f, 100);
-        ground.transform.localScale = new Vector3(100, 1, 400); // Çok uzun ve geniş bir zemin
-        ground.GetComponent<Renderer>().sharedMaterial.color = new Color(0.2f, 0.2f, 0.2f); // Asfalt rengi
+        // Varsa eski kameraları temizle
+        Camera[] existingCams = Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+        foreach (Camera c in existingCams) Object.DestroyImmediate(c.gameObject);
 
-        // Dev rampa oluştur (Yukarı doğru zıplatan rampa, y=5'e kadar çıkacak)
+        Light[] existingLights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None);
+        foreach (Light l in existingLights) Object.DestroyImmediate(l.gameObject);
+
+        // Şehir Işığı
+        GameObject sunObj = new GameObject("StuntSun");
+        Light sun = sunObj.AddComponent<Light>();
+        sun.type = LightType.Directional;
+        sun.intensity = 1.3f;
+        sun.color = new Color(1f, 0.96f, 0.88f); // Sıcak gün ışığı
+        sun.shadows = LightShadows.Soft;
+        sunObj.transform.rotation = Quaternion.Euler(45f, -35f, 0f);
+
+        // 3. MATEMATİKSEL PİST VE RAMPA
+        GameObject runway = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        runway.name = "Runway_Road";
+        runway.transform.position = new Vector3(0f, -0.5f, -10f);
+        runway.transform.localScale = new Vector3(20f, 1f, 100f);
+        Material roadMat = new Material(Shader.Find("Standard"));
+        roadMat.color = new Color(0.12f, 0.12f, 0.12f);
+        runway.GetComponent<Renderer>().sharedMaterial = roadMat;
+
+        float thetaDeg = 18f;
+        float thetaRad = thetaDeg * Mathf.Deg2Rad;
+        float rampLength = 60f;
+        float rampWidth = 18f;
+        float startZ = 40f;
+        float deltaZ = rampLength * Mathf.Cos(thetaRad); 
+        float deltaY = rampLength * Mathf.Sin(thetaRad); 
+
         GameObject ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        ramp.name = "GiantRamp";
-        ramp.transform.position = new Vector3(0, 5, 50); // İleriye ve yukarıya yerleştirdik
-        ramp.transform.localScale = new Vector3(20, 1, 50);
-        ramp.transform.rotation = Quaternion.Euler(-15, 0, 0); // Yukarı doğru fırlatan eğim (-15)
-        ramp.GetComponent<Renderer>().sharedMaterial.color = new Color(0.8f, 0.1f, 0.1f); // Kırmızı rampa
+        ramp.name = "PrecisionRamp";
+        ramp.transform.position = new Vector3(0f, deltaY / 2f, startZ + (deltaZ / 2f));
+        ramp.transform.localScale = new Vector3(rampWidth, 1f, rampLength);
+        ramp.transform.rotation = Quaternion.Euler(-thetaDeg, 0f, 0f);
+        Material rampMat = new Material(Shader.Find("Standard"));
+        rampMat.color = new Color(0.9f, 0.12f, 0.12f);
+        ramp.GetComponent<Renderer>().sharedMaterial = rampMat;
 
-        // Dev hedef karakter (Yamal / Capsule) - Rampanın ardına yerleştir (Örneğin z=120)
-        GameObject giantPlayer = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        giantPlayer.name = "GiantPlayer_Target";
-        giantPlayer.transform.position = new Vector3(0, 20, 120); // Yere (y=20, z=120) yerleşti (boyu 40 olduğu için y=20 zemin hizasıdır)
-        giantPlayer.transform.localScale = new Vector3(20, 40, 20);
-        giantPlayer.GetComponent<Renderer>().sharedMaterial.color = new Color(0.1f, 0.3f, 0.8f); // Koyu mavi
-        Rigidbody giantRb = giantPlayer.AddComponent<Rigidbody>();
-        giantRb.mass = 5000f; 
+        // 4. HEDEF KARAKTER
+        float peakZ = startZ + deltaZ;
+        float targetZ = peakZ + 70f;
+        GameObject targetPlayer = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        targetPlayer.name = "GiantTarget";
+        targetPlayer.transform.position = new Vector3(0f, 15f, targetZ);
+        targetPlayer.transform.localScale = new Vector3(16f, 30f, 16f);
+        Material targetMat = new Material(Shader.Find("Standard"));
+        targetMat.color = new Color(0.1f, 0.35f, 0.85f);
+        targetPlayer.GetComponent<Renderer>().sharedMaterial = targetMat;
+        targetPlayer.AddComponent<Rigidbody>().mass = 8000f;
 
-        // Dev futbol topu
-        GameObject ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        ball.name = "GiantFootball";
-        ball.transform.position = new Vector3(15, 7.5f, 100);
-        ball.transform.localScale = new Vector3(15, 15, 15);
-        ball.GetComponent<Renderer>().sharedMaterial.color = Color.white;
-        Rigidbody ballRb = ball.AddComponent<Rigidbody>();
-        ballRb.mass = 500f;
+        GameObject groundPlane = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        groundPlane.name = "LandingArea";
+        groundPlane.transform.position = new Vector3(0f, -0.5f, targetZ);
+        groundPlane.transform.localScale = new Vector3(100f, 1f, 120f);
+        Material grassMat = new Material(Shader.Find("Standard"));
+        grassMat.color = new Color(0.25f, 0.55f, 0.25f);
+        groundPlane.GetComponent<Renderer>().sharedMaterial = grassMat;
 
-        // Arabayı Sandbox'tan getir
+        // 4.5. PEMBE MATERYAL HATASINI DÜZELT (OmniRunner'ın Curved Shader'ı bu projede yok)
+        string[] matGuids = AssetDatabase.FindAssets("t:Material", new[] { "Assets/Loading Games/Toon City Pack/Materials" });
+        Shader standardShader = Shader.Find("Standard");
+        foreach (string guid in matGuids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null && mat.shader.name != "Standard")
+            {
+                mat.shader = standardShader;
+                EditorUtility.SetDirty(mat);
+            }
+        }
+        AssetDatabase.SaveAssets();
+
+        // 5. ŞEHRİ PREFABLARDAN İNŞA ET (Toon City Yöntemi)
+        string[] buildings = AssetDatabase.FindAssets("t:GameObject", new[] { "Assets/Loading Games/Toon City Pack/Prefabs/Buildings" });
+        string[] trees = AssetDatabase.FindAssets("t:GameObject", new[] { "Assets/Loading Games/Toon City Pack/Prefabs/Vegetation" });
+        
+        if (buildings.Length > 0)
+        {
+            GameObject cityParent = new GameObject("ProceduralCity");
+            int buildIndex = 0;
+            // Z=-60'dan Z=200'e kadar pistin sağ ve soluna binalar dik
+            for (float z = -60f; z <= 220f; z += 18f)
+            {
+                // Sol Bina
+                string leftPath = AssetDatabase.GUIDToAssetPath(buildings[buildIndex % buildings.Length]);
+                GameObject leftPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(leftPath);
+                if (leftPrefab)
+                {
+                    GameObject b = (GameObject)PrefabUtility.InstantiatePrefab(leftPrefab, cityParent.transform);
+                    b.transform.position = new Vector3(-20f, 0f, z);
+                    b.transform.rotation = Quaternion.Euler(0f, 90f, 0f); // Yola dönük
+                    b.transform.localScale = Vector3.one * 1.5f; // Şehir devasa görünsün
+                }
+                buildIndex++;
+
+                // Sağ Bina
+                string rightPath = AssetDatabase.GUIDToAssetPath(buildings[buildIndex % buildings.Length]);
+                GameObject rightPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(rightPath);
+                if (rightPrefab)
+                {
+                    GameObject b = (GameObject)PrefabUtility.InstantiatePrefab(rightPrefab, cityParent.transform);
+                    b.transform.position = new Vector3(20f, 0f, z);
+                    b.transform.rotation = Quaternion.Euler(0f, -90f, 0f); // Yola dönük
+                    b.transform.localScale = Vector3.one * 1.5f;
+                }
+                buildIndex++;
+            }
+        }
+
+        // 6. ARABA ENTEGRASYONU
         Scene sandboxScene = EditorSceneManager.OpenScene("Assets/Scenes/Sandbox.unity", OpenSceneMode.Additive);
         GameObject originalCar = GameObject.Find("Car");
         if (originalCar != null)
         {
             GameObject newCar = PrefabUtility.InstantiatePrefab(originalCar) as GameObject;
-            if (newCar == null)
-                newCar = Object.Instantiate(originalCar);
+            if (newCar == null) newCar = Object.Instantiate(originalCar);
 
             newCar.name = "PlayerCar";
-            newCar.transform.position = new Vector3(0, 1f, 0); // Araba y=0 (zemin hizası) seviyesinde başlıyor
+            newCar.transform.position = new Vector3(0f, 0.6f, -40f); 
             newCar.transform.rotation = Quaternion.identity; 
-            
             SceneManager.MoveGameObjectToScene(newCar, challengeScene);
-            
+
             GameObject origCam = GameObject.Find("Main Camera");
             if (origCam != null)
             {
@@ -135,27 +203,24 @@ public class ChallengeBuilder : EditorWindow
                 if (camScript != null)
                 {
                     camScript.target = newCar;
+                    camScript.targetHeightOffset = 1.2f;
+                    camScript.distance = 6.5f;
+                    camScript.cameraHeightOffset = 2.5f;
                 }
             }
         }
-        
-        // Orijinal Sandbox sahnesini geri kapat
         EditorSceneManager.CloseScene(sandboxScene, true);
-        
-        // Yeni Challenge sahnesini kaydet
+
+        // 7. KAYDET
         string challengePath = "Assets/Scenes/Challenge.unity";
         EditorSceneManager.SaveScene(challengeScene, challengePath);
-        
-        // Build Settings'e ekle
-        EditorBuildSettingsScene[] originalSettings = EditorBuildSettings.scenes;
+
         EditorBuildSettingsScene[] newSettings = new EditorBuildSettingsScene[2];
         newSettings[0] = new EditorBuildSettingsScene(mainMenuPath, true);
         newSettings[1] = new EditorBuildSettingsScene(challengePath, true);
         EditorBuildSettings.scenes = newSettings;
 
-        // Son olarak MainMenu'yü aç
+        Debug.Log("✅ [ŞEHİR KURULDU] OmniRunner stili prosedürel şehir başarıyla oluşturuldu.");
         EditorSceneManager.OpenScene(mainMenuPath);
-        
-        Debug.Log("🎉 Challenge Modu başarıyla oluşturuldu! Sahneler eklendi ve Ana Menü açıldı.");
     }
 }
