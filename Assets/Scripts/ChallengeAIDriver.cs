@@ -183,8 +183,9 @@ public class ChallengeAIDriver : MonoBehaviour
 
             float engineSignal = (mainWave + subWave + saw + exhaust) * 0.6f;
 
-            // 2. Rüzgar / Hız Uçuş Sesi (White noise filtered)
-            float whiteNoise = (Random.value * 2f - 1f);
+            // 2. Rüzgar / Hız Uçuş Sesi (Thread-safe saf matematiksel White Noise)
+            noiseSeed = (noiseSeed * 196314165 + 907633515);
+            float whiteNoise = ((float)(noiseSeed & 0x7FFFFFFF) / 2147483647f) * 2f - 1f;
             float windSignal = whiteNoise * windNoiseLevel;
 
             // 3. Çarpışma / Patlama Sesi
@@ -202,4 +203,5 @@ public class ChallengeAIDriver : MonoBehaviour
             }
         }
     }
+    private uint noiseSeed = 123456789;
 }
