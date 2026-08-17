@@ -85,8 +85,8 @@ public class ChallengeBuilder : EditorWindow
         // 3. MATEMATİKSEL PİST VE RAMPA
         GameObject runway = GameObject.CreatePrimitive(PrimitiveType.Cube);
         runway.name = "Runway_Road";
-        runway.transform.position = new Vector3(0f, -0.5f, -10f);
-        runway.transform.localScale = new Vector3(20f, 1f, 100f);
+        runway.transform.position = new Vector3(0f, -0.5f, -30f); // Geriye uzatıldı
+        runway.transform.localScale = new Vector3(20f, 1f, 200f); // 100m'den 200m'ye çıkarıldı
         Material roadMat = new Material(Shader.Find("Standard"));
         roadMat.color = new Color(0.12f, 0.12f, 0.12f);
         runway.GetComponent<Renderer>().sharedMaterial = roadMat;
@@ -95,14 +95,17 @@ public class ChallengeBuilder : EditorWindow
         float thetaRad = thetaDeg * Mathf.Deg2Rad;
         float rampLength = 60f;
         float rampWidth = 18f;
+        float rampThickness = 0.2f; // Arabanın takılmaması için rampayı incelttik
         float startZ = 40f;
         float deltaZ = rampLength * Mathf.Cos(thetaRad); 
         float deltaY = rampLength * Mathf.Sin(thetaRad); 
 
         GameObject ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ramp.name = "PrecisionRamp";
-        ramp.transform.position = new Vector3(0f, deltaY / 2f, startZ + (deltaZ / 2f));
-        ramp.transform.localScale = new Vector3(rampWidth, 1f, rampLength);
+        // Rampanın ucunun (üst yüzeyinin) tam Y=0'a sıfırlanması için matematiksel düzeltme:
+        float lipCorrectionY = (rampThickness / 2f) * Mathf.Cos(thetaRad);
+        ramp.transform.position = new Vector3(0f, (deltaY / 2f) - lipCorrectionY, startZ + (deltaZ / 2f));
+        ramp.transform.localScale = new Vector3(rampWidth, rampThickness, rampLength);
         ramp.transform.rotation = Quaternion.Euler(-thetaDeg, 0f, 0f);
         Material rampMat = new Material(Shader.Find("Standard"));
         rampMat.color = new Color(0.9f, 0.12f, 0.12f);
@@ -163,6 +166,7 @@ public class ChallengeBuilder : EditorWindow
                     b.transform.position = new Vector3(-20f, 0f, z);
                     b.transform.rotation = Quaternion.Euler(0f, 90f, 0f); // Yola dönük
                     b.transform.localScale = Vector3.one * 1.5f; // Şehir devasa görünsün
+                    AddCollidersToBuilding(b);
                 }
                 buildIndex++;
 
@@ -175,6 +179,7 @@ public class ChallengeBuilder : EditorWindow
                     b.transform.position = new Vector3(20f, 0f, z);
                     b.transform.rotation = Quaternion.Euler(0f, -90f, 0f); // Yola dönük
                     b.transform.localScale = Vector3.one * 1.5f;
+                    AddCollidersToBuilding(b);
                 }
                 buildIndex++;
             }
@@ -189,7 +194,7 @@ public class ChallengeBuilder : EditorWindow
             if (newCar == null) newCar = Object.Instantiate(originalCar);
 
             newCar.name = "PlayerCar";
-            newCar.transform.position = new Vector3(0f, 0.6f, -40f); 
+            newCar.transform.position = new Vector3(0f, 0.6f, -80f); // Daha çok hızlanması için en geriye alındı (Eskisi -40'tı)
             newCar.transform.rotation = Quaternion.identity; 
             SceneManager.MoveGameObjectToScene(newCar, challengeScene);
 
@@ -222,5 +227,20 @@ public class ChallengeBuilder : EditorWindow
 
         Debug.Log("✅ [ŞEHİR KURULDU] OmniRunner stili prosedürel şehir başarıyla oluşturuldu.");
         EditorSceneManager.OpenScene(mainMenuPath);
+    }
+
+    // ARABANIN BİNALARIN İÇİNDEN GEÇMEMESİ İÇİN OTOMATİK ÇARPIŞMA (COLLIDER) EKLENMESİ
+    private static void AddCollidersToBuilding(GameObject building)
+    {
+        MeshFilter[] meshes = building.GetComponentsInChildren<MeshFilter>();
+        foreach (MeshFilter mf in meshes)
+        {
+            if (mf.gameObject.GetComponent<Collider>() == null)
+            {
+                MeshCollider mc = mf.gameObject.AddComponent<MeshCollider>();
+                // MeshCollider convex olmamalı (kutu gibi değil, binanın şeklini sarması için)
+                mc.convex = false;
+            }
+        }
     }
 }
