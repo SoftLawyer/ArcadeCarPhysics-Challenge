@@ -179,42 +179,86 @@ public class ChallengeBuilder : EditorWindow
         }
         AssetDatabase.SaveAssets();
 
-        // 5. ŞEHRİ PREFABLARDAN İNŞA ET (Toon City Yöntemi)
+        // 5. ŞEHRİ PREFABLARDAN İNŞA ET (Gerçekçi Büyük Şehir)
         string[] buildings = AssetDatabase.FindAssets("t:GameObject", new[] { "Assets/Loading Games/Toon City Pack/Prefabs/Buildings" });
         string[] trees = AssetDatabase.FindAssets("t:GameObject", new[] { "Assets/Loading Games/Toon City Pack/Prefabs/Vegetation" });
+        string[] props = AssetDatabase.FindAssets("t:GameObject", new[] { 
+            "Assets/Loading Games/Toon City Pack/Prefabs/Urban Props", 
+            "Assets/Loading Games/Toon City Pack/Prefabs/Infrastructure/Props" 
+        });
         
+        // Şehir Zemini (Beton Zemin)
+        GameObject cityGround = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        cityGround.name = "City_Concrete_Foundation";
+        cityGround.transform.position = new Vector3(0f, -0.6f, 50f);
+        cityGround.transform.localScale = new Vector3(300f, 1f, 400f);
+        Material concreteMat = new Material(Shader.Find("Standard"));
+        concreteMat.color = new Color(0.3f, 0.3f, 0.32f);
+        cityGround.GetComponent<Renderer>().sharedMaterial = concreteMat;
+
         if (buildings.Length > 0)
         {
             GameObject cityParent = new GameObject("ProceduralCity");
             int buildIndex = 0;
-            // Z=-60'dan Z=200'e kadar pistin sağ ve soluna binalar dik
-            for (float z = -60f; z <= 220f; z += 18f)
-            {
-                // Sol Bina
-                string leftPath = AssetDatabase.GUIDToAssetPath(buildings[buildIndex % buildings.Length]);
-                GameObject leftPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(leftPath);
-                if (leftPrefab)
-                {
-                    GameObject b = (GameObject)PrefabUtility.InstantiatePrefab(leftPrefab, cityParent.transform);
-                    b.transform.position = new Vector3(-20f, 0f, z);
-                    b.transform.rotation = Quaternion.Euler(0f, 90f, 0f); // Yola dönük
-                    b.transform.localScale = Vector3.one * 1.5f; // Şehir devasa görünsün
-                    AddCollidersToBuilding(b);
-                }
-                buildIndex++;
+            int treeIndex = 0;
+            int propIndex = 0;
 
-                // Sağ Bina
-                string rightPath = AssetDatabase.GUIDToAssetPath(buildings[buildIndex % buildings.Length]);
-                GameObject rightPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(rightPath);
-                if (rightPrefab)
+            // Z= -60'dan 220'ye kadar Derinlemesine Şehir Grid'i (3 Sıra Sağ, 3 Sıra Sol)
+            for (float z = -60f; z <= 220f; z += 25f)
+            {
+                // X ekseninde binalar (-85, -55, -25) ve (25, 55, 85)
+                float[] xPositions = { -85f, -55f, -25f, 25f, 55f, 85f };
+                
+                foreach (float x in xPositions)
                 {
-                    GameObject b = (GameObject)PrefabUtility.InstantiatePrefab(rightPrefab, cityParent.transform);
-                    b.transform.position = new Vector3(20f, 0f, z);
-                    b.transform.rotation = Quaternion.Euler(0f, -90f, 0f); // Yola dönük
-                    b.transform.localScale = Vector3.one * 1.5f;
-                    AddCollidersToBuilding(b);
+                    string path = AssetDatabase.GUIDToAssetPath(buildings[buildIndex % buildings.Length]);
+                    GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (prefab)
+                    {
+                        GameObject b = (GameObject)PrefabUtility.InstantiatePrefab(prefab, cityParent.transform);
+                        b.transform.position = new Vector3(x, 0f, z);
+                        
+                        // Yön: Yola bakan binalar (x=-25 ve x=25) yola dönsün, arkadakiler rastgele dönsün
+                        if (x == -25f) b.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                        else if (x == 25f) b.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                        else b.transform.rotation = Quaternion.Euler(0f, Random.Range(0, 4) * 90f, 0f);
+                        
+                        b.transform.localScale = Vector3.one * 1.5f; 
+                        AddCollidersToBuilding(b);
+                    }
+                    buildIndex++;
                 }
-                buildIndex++;
+
+                // Kaldırımlara Ağaç ve Prop (Sokak lambası vb.) Ekle (X = -12 ve X = 12)
+                if (trees.Length > 0)
+                {
+                    string tPath = AssetDatabase.GUIDToAssetPath(trees[treeIndex % trees.Length]);
+                    GameObject tPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(tPath);
+                    if (tPrefab)
+                    {
+                        GameObject t1 = (GameObject)PrefabUtility.InstantiatePrefab(tPrefab, cityParent.transform);
+                        t1.transform.position = new Vector3(-12f, 0f, z + 5f);
+                        t1.transform.localScale = Vector3.one * 1.5f;
+                        GameObject t2 = (GameObject)PrefabUtility.InstantiatePrefab(tPrefab, cityParent.transform);
+                        t2.transform.position = new Vector3(12f, 0f, z - 5f);
+                        t2.transform.localScale = Vector3.one * 1.5f;
+                    }
+                    treeIndex++;
+                }
+
+                if (props.Length > 0)
+                {
+                    string pPath = AssetDatabase.GUIDToAssetPath(props[propIndex % props.Length]);
+                    GameObject pPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(pPath);
+                    if (pPrefab)
+                    {
+                        GameObject p1 = (GameObject)PrefabUtility.InstantiatePrefab(pPrefab, cityParent.transform);
+                        p1.transform.position = new Vector3(-14f, 0f, z - 5f);
+                        GameObject p2 = (GameObject)PrefabUtility.InstantiatePrefab(pPrefab, cityParent.transform);
+                        p2.transform.position = new Vector3(14f, 0f, z + 5f);
+                    }
+                    propIndex++;
+                }
             }
         }
 
