@@ -1,4 +1,4 @@
-﻿Shader "ArcadeCarPhysics/Terrain" {
+Shader "ArcadeCarPhysics/Terrain" {
 	Properties {
 		// set by terrain engine
 		[HideInInspector] _Control ("Control (RGBA)", 2D) = "red" {}
@@ -67,11 +67,11 @@
 
 		void surf (Input IN, inout SurfaceOutputStandard o) {
 
-			float uvScale = _UvScale;
-			IN.uv_Splat0 = IN.uv_Splat0 * uvScale;
-			IN.uv_Splat1 = IN.uv_Splat1 * uvScale;
-			IN.uv_Splat2 = IN.uv_Splat2 * uvScale;
-			IN.uv_Splat3 = IN.uv_Splat3 * uvScale;
+			// float uvScale = _UvScale;
+			// IN.uv_Splat0 = IN.uv_Splat0 * uvScale;
+			// IN.uv_Splat1 = IN.uv_Splat1 * uvScale;
+			// IN.uv_Splat2 = IN.uv_Splat2 * uvScale;
+			// IN.uv_Splat3 = IN.uv_Splat3 * uvScale;
 
 			half4 splat_control;
 			half weight;

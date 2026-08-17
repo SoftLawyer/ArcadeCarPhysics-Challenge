@@ -5,7 +5,13 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: 
-    guid: 00000000000000000000000000000000
-  m_configObjects: {}
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 4fac52a591ac54f8e95bc0064367318a
+  - enabled: 1
+    path: Assets/Scenes/Challenge.unity
+    guid: 7c0104ddebaa6415e9a11dec67c5f047
+  m_configObjects:
+    com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f,
+      type: 2}
+  m_UseUCBPForAssetBundles: 0

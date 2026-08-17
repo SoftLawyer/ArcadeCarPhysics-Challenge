@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using System.Collections;
 
@@ -243,7 +243,7 @@ public class ArcadeCar : MonoBehaviour
         transform.position = position;
         transform.rotation = Quaternion.Euler(new Vector3(0.0f, yaw, 0.0f));
 
-        rb.velocity = new Vector3(0f, 0f, 0f);
+        rb.linearVelocity = new Vector3(0f, 0f, 0f);
         rb.angularVelocity = new Vector3(0f, 0f, 0f);
 
         for (int axleIndex = 0; axleIndex < axles.Length; axleIndex++)
@@ -256,7 +256,7 @@ public class ArcadeCar : MonoBehaviour
 
     void Start()
     {
-
+        Debug.Log("🏎️ ArcadeCar scripti BAŞLADI! Eğer araba hareket etmiyorsa, Input (W/A/S/D) kısmında bir sorun olabilir.");
 
         style.normal.textColor = Color.red;
 
@@ -381,7 +381,7 @@ public class ArcadeCar : MonoBehaviour
 
     public float GetSpeed()
     {
-        Vector3 velocity = rb.velocity;
+        Vector3 velocity = rb.linearVelocity;
 
         Vector3 wsForward = rb.transform.rotation * Vector3.forward;
         float vProj = Vector3.Dot(velocity, wsForward);
@@ -430,6 +430,11 @@ public class ArcadeCar : MonoBehaviour
     {
         float v = Input.GetAxis("Vertical");
         float h = Input.GetAxis("Horizontal");
+        
+        if (Mathf.Abs(v) > 0.1f || Mathf.Abs(h) > 0.1f) 
+        {
+            Debug.Log($"🎮 Input alınıyor! İleri/Geri (v): {v}, Sağ/Sol (h): {h}");
+        }
         //Debug.Log (string.Format ("H = {0}", h));
 
         if (!controllable)
