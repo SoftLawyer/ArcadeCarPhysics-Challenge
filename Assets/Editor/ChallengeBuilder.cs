@@ -216,7 +216,7 @@ public class ChallengeBuilder : EditorWindow
         target.GetComponent<Renderer>().sharedMaterial = targetMat;
         Rigidbody rb = target.AddComponent<Rigidbody>();
         rb.mass = 8000f;
-        rb.drag = 1f;
+        rb.linearDamping = 1f;
 
         GameObject landing = GameObject.CreatePrimitive(PrimitiveType.Cube);
         landing.name = "LandingArea";
@@ -238,7 +238,16 @@ public class ChallengeBuilder : EditorWindow
             newCar.transform.position = new Vector3(0f, 0.5f, -80f);
             newCar.transform.rotation = Quaternion.identity;
             SceneManager.MoveGameObjectToScene(newCar, challengeScene);
-            Debug.Log("[5/5] Araba eklendi: " + newCar.name);
+
+            // Yapay Zeka Sürücü ve Ses Sistemi Ekle
+            AudioSource aSrc = newCar.GetComponent<AudioSource>();
+            if (aSrc == null) aSrc = newCar.AddComponent<AudioSource>();
+            aSrc.spatialBlend = 0f;
+
+            ChallengeAIDriver aiDriver = newCar.GetComponent<ChallengeAIDriver>();
+            if (aiDriver == null) aiDriver = newCar.AddComponent<ChallengeAIDriver>();
+
+            Debug.Log("[5/5] Araba ve Yapay Zeka Sürücü (AI + Ses) eklendi: " + newCar.name);
 
             // Kamera
             GameObject origCam = GameObject.Find("Main Camera");
@@ -256,6 +265,11 @@ public class ChallengeBuilder : EditorWindow
                 newCam.tag = "MainCamera";
                 newCam.SetActive(true);
                 SceneManager.MoveGameObjectToScene(newCam, challengeScene);
+
+                if (newCam.GetComponent<AudioListener>() == null)
+                {
+                    newCam.AddComponent<AudioListener>();
+                }
 
                 CameraCar camScript = newCam.GetComponent<CameraCar>();
                 if (camScript != null)
