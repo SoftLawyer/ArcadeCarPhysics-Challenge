@@ -30,12 +30,18 @@ public class ChallengeAIDriver : MonoBehaviour
     private float timer = 0f;
 
     // Prosedürel ses sentezi değişkenleri
+    private float sampleRate = 48000f;
     private float phaseMain = 0f;
     private float phaseSub = 0f;
     private float phaseExhaust = 0f;
     private float currentFreq = 50f;
     private float crashNoiseTimer = 0f;
     private float windNoiseLevel = 0f;
+
+    void Awake()
+    {
+        sampleRate = AudioSettings.outputSampleRate;
+    }
 
     void Start()
     {
@@ -154,7 +160,7 @@ public class ChallengeAIDriver : MonoBehaviour
     // Unity DSP Sentezleyici: Harici MP3 dosyası olmadan saf motor/egzoz/rüzgar/patlama sesi üretir
     void OnAudioFilterRead(float[] data, int channels)
     {
-        float sampleRate = AudioSettings.outputSampleRate;
+        if (sampleRate <= 0f) sampleRate = 48000f;
         float mainIncrement = currentFreq * 2f * Mathf.PI / sampleRate;
         float subIncrement = (currentFreq * 0.5f) * 2f * Mathf.PI / sampleRate;
         float exhaustIncrement = (currentFreq * 2.5f) * 2f * Mathf.PI / sampleRate;
