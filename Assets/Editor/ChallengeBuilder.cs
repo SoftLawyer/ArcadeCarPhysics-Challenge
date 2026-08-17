@@ -82,34 +82,67 @@ public class ChallengeBuilder : EditorWindow
         sun.shadows = LightShadows.Soft;
         sunObj.transform.rotation = Quaternion.Euler(45f, -35f, 0f);
 
-        // 3. MATEMATİKSEL PİST VE RAMPA
+        // 3. MATEMATİKSEL PİST VE RAMPA (Asfalt ve Şeritler)
         GameObject runway = GameObject.CreatePrimitive(PrimitiveType.Cube);
         runway.name = "Runway_Road";
-        runway.transform.position = new Vector3(0f, -0.5f, -30f); // Geriye uzatıldı
-        runway.transform.localScale = new Vector3(20f, 1f, 200f); // 100m'den 200m'ye çıkarıldı
-        Material roadMat = new Material(Shader.Find("Standard"));
-        roadMat.color = new Color(0.12f, 0.12f, 0.12f);
-        runway.GetComponent<Renderer>().sharedMaterial = roadMat;
+        runway.transform.position = new Vector3(0f, -0.5f, -30f); 
+        runway.transform.localScale = new Vector3(20f, 1f, 200f); 
+        
+        Material asphaltMat = new Material(Shader.Find("Standard"));
+        asphaltMat.color = new Color(0.15f, 0.15f, 0.15f); // Koyu Asfalt Rengi
+        asphaltMat.SetFloat("_Glossiness", 0.2f); // Mat görünüm
+        runway.GetComponent<Renderer>().sharedMaterial = asphaltMat;
+
+        Material stripeMat = new Material(Shader.Find("Standard"));
+        stripeMat.color = Color.white;
+        stripeMat.SetFloat("_Glossiness", 0f);
+
+        // Pist Şeritleri (Runway Centerlines)
+        GameObject runwayStripes = new GameObject("Runway_Stripes");
+        for (float z = -120f; z < 70f; z += 4f)
+        {
+            GameObject stripe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            stripe.transform.SetParent(runwayStripes.transform);
+            stripe.transform.position = new Vector3(0f, 0.01f, z); // Yolun milimetrik üstünde
+            stripe.transform.localScale = new Vector3(0.4f, 0.02f, 2f); // Çizgi boyutları
+            stripe.GetComponent<Renderer>().sharedMaterial = stripeMat;
+            Object.DestroyImmediate(stripe.GetComponent<Collider>()); // Takılma yapmasın
+        }
 
         float thetaDeg = 18f;
         float thetaRad = thetaDeg * Mathf.Deg2Rad;
         float rampLength = 60f;
         float rampWidth = 18f;
-        float rampThickness = 0.2f; // Arabanın takılmaması için rampayı incelttik
+        float rampThickness = 0.2f; 
         float startZ = 40f;
         float deltaZ = rampLength * Mathf.Cos(thetaRad); 
         float deltaY = rampLength * Mathf.Sin(thetaRad); 
 
         GameObject ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ramp.name = "PrecisionRamp";
-        // Rampanın ucunun (üst yüzeyinin) tam Y=0'a sıfırlanması için matematiksel düzeltme:
         float lipCorrectionY = (rampThickness / 2f) * Mathf.Cos(thetaRad);
         ramp.transform.position = new Vector3(0f, (deltaY / 2f) - lipCorrectionY, startZ + (deltaZ / 2f));
         ramp.transform.localScale = new Vector3(rampWidth, rampThickness, rampLength);
         ramp.transform.rotation = Quaternion.Euler(-thetaDeg, 0f, 0f);
-        Material rampMat = new Material(Shader.Find("Standard"));
-        rampMat.color = new Color(0.9f, 0.12f, 0.12f);
-        ramp.GetComponent<Renderer>().sharedMaterial = rampMat;
+        ramp.GetComponent<Renderer>().sharedMaterial = asphaltMat; // Rampayı da asfalt yap
+
+        // Rampa Şeritleri (Ramp Centerlines)
+        GameObject rampStripes = new GameObject("Ramp_Stripes");
+        rampStripes.transform.SetParent(ramp.transform);
+        rampStripes.transform.localPosition = Vector3.zero;
+        rampStripes.transform.localRotation = Quaternion.identity;
+        
+        for (float z = -25f; z < 28f; z += 4f)
+        {
+            GameObject stripe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            stripe.transform.SetParent(rampStripes.transform);
+            stripe.transform.localPosition = new Vector3(0f, 0.51f, z); // Rampanın local üst yüzeyi
+            stripe.transform.localRotation = Quaternion.identity;
+            // Rampanın Z boyutu scale ile bozulmasın diye ters hesap
+            stripe.transform.localScale = new Vector3(0.4f / rampWidth, 0.05f / rampThickness, 2f / rampLength);
+            stripe.GetComponent<Renderer>().sharedMaterial = stripeMat;
+            Object.DestroyImmediate(stripe.GetComponent<Collider>());
+        }
 
         // 4. HEDEF KARAKTER
         float peakZ = startZ + deltaZ;
