@@ -122,7 +122,8 @@ public class ChallengeAIDriver : MonoBehaviour
                 break;
 
             case State.Driving:
-                if (transform.position.y > airThresholdY)
+                // Sadece rampanın en tepesinden (Z >= 95) fırladıktan sonra uçuş moduna geç
+                if (transform.position.z >= 95f)
                 {
                     currentState = State.InAir;
                     Debug.Log($"🦅 [i6 German AI] 400 KM/H İLE UÇUŞ BAŞLADI! Hız: {speedKmh:F1} km/h");
@@ -143,25 +144,27 @@ public class ChallengeAIDriver : MonoBehaviour
     {
         if (currentState == State.Driving)
         {
+            // Rampanın açısına göre yukarı yönlü vektörü de al
             Vector3 fwd = transform.forward;
-            fwd.y = 0f;
-            fwd.Normalize();
 
             float targetSpeedMs = targetTopSpeedKmh / 3.6f; // 111.11 m/s = 400 km/h
             Vector3 curVel = rb.linearVelocity;
             float curFwdSpeed = Vector3.Dot(curVel, fwd);
 
-            // Tekerlek sürtünmesi veya drag engellerine takılmadan 400 km/s'ye kesin ulaş:
-            float accelRate = 28f; // m/s^2 ivmelenme
+            // Anında 400 km/s'ye fırlat (0-400 km/s 1.5 saniye):
+            float accelRate = 75f; // m/s^2 hiper ivmelenme
             float newFwdSpeed = Mathf.MoveTowards(curFwdSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
 
-            // İleri hızı uygula, Y dikey hızını (zıplama/rampa açısı) koru
-            rb.linearVelocity = fwd * newFwdSpeed + new Vector3(0f, curVel.y, 0f);
+            // Hem yolda hem rampada tepeye kadar tam 400 km/s itiş uygula
+            rb.linearVelocity = fwd * newFwdSpeed;
 
-            // Şeridi tam ortala
-            Vector3 pos = transform.position;
-            pos.x = Mathf.Lerp(pos.x, 0f, Time.fixedDeltaTime * 8f);
-            transform.position = pos;
+            // Rampa öncesi şeridi tam ortala
+            if (transform.position.z < 35f)
+            {
+                Vector3 pos = transform.position;
+                pos.x = Mathf.Lerp(pos.x, 0f, Time.fixedDeltaTime * 10f);
+                transform.position = pos;
+            }
         }
         else if (currentState == State.InAir)
         {
