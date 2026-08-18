@@ -136,46 +136,48 @@ public class ChallengeBuilder : EditorWindow
 
         Debug.Log("[3/5] Pist ve rampa olusturuluyor...");
 
-        // ─── ANA ASFALT PİST ─────────────────────────────────────────────────
-        // SimplePoly City'nin kendi yolunun UZERINDE, onu kapatmayacak sekilde
-        // Pist Y=-0.01 ile hafifce altta (veya uzerinde)
+        // ─── ANA ASFALT PİST (10 KAT DAHA UZUN OTOBAN: 1.2 KM DÜZLÜK) ───────────────────
+        float runwayLength = 1300f; // 10 kat uzatılmış devasa otoban
+        float runwayCenterZ = -600f;
+        float carStartZ = -1150f;   // Rampa öncesi 1190 metre kesintisiz hızlanma yolu
+
         GameObject runway = GameObject.CreatePrimitive(PrimitiveType.Cube);
         runway.name = "Runway_Asphalt";
-        runway.transform.position = new Vector3(0f, 0f, -20f);
-        runway.transform.localScale = new Vector3(ROAD_W, 0.08f, 200f);
+        runway.transform.position = new Vector3(0f, 0f, runwayCenterZ);
+        runway.transform.localScale = new Vector3(ROAD_W, 0.08f, runwayLength);
         runway.GetComponent<Renderer>().sharedMaterial = asphaltMat;
 
-        // Kaldirımlar
+        // Kaldirımlar (Tüm 1.2 km boyunca)
         for (int side = -1; side <= 1; side += 2)
         {
             GameObject sw = GameObject.CreatePrimitive(PrimitiveType.Cube);
             sw.name = "Sidewalk";
-            sw.transform.position = new Vector3(side * (ROAD_W / 2f + 2.2f), 0.02f, -20f);
-            sw.transform.localScale = new Vector3(4f, 0.1f, 200f);
+            sw.transform.position = new Vector3(side * (ROAD_W / 2f + 2.2f), 0.02f, runwayCenterZ);
+            sw.transform.localScale = new Vector3(4f, 0.1f, runwayLength);
             sw.GetComponent<Renderer>().sharedMaterial = sidewalkMat;
         }
 
-        // Orta beyaz kesik cizgiler
+        // Orta beyaz kesik cizgiler (1.2 km boyunca)
         GameObject stripeParent = new GameObject("RoadStripes");
-        for (float z = -110f; z < RAMP_START_Z; z += 5f)
+        for (float z = -1200f; z < RAMP_START_Z; z += 6f)
         {
             GameObject s = GameObject.CreatePrimitive(PrimitiveType.Cube);
             s.transform.SetParent(stripeParent.transform);
             s.transform.position = new Vector3(0f, 0.05f, z);
-            s.transform.localScale = new Vector3(0.3f, 0.02f, 2.5f);
+            s.transform.localScale = new Vector3(0.3f, 0.02f, 3f);
             s.GetComponent<Renderer>().sharedMaterial = stripeMat;
             Object.DestroyImmediate(s.GetComponent<Collider>());
         }
 
-        // Kenar sari cizgiler
+        // Kenar sari cizgiler (1.2 km boyunca)
         for (int side = -1; side <= 1; side += 2)
         {
-            for (float z = -110f; z < RAMP_START_Z; z += 5f)
+            for (float z = -1200f; z < RAMP_START_Z; z += 6f)
             {
                 GameObject ys = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 ys.transform.SetParent(stripeParent.transform);
                 ys.transform.position = new Vector3(side * (ROAD_W / 2f - 0.4f), 0.05f, z);
-                ys.transform.localScale = new Vector3(0.22f, 0.02f, 5f);
+                ys.transform.localScale = new Vector3(0.22f, 0.02f, 6f);
                 ys.GetComponent<Renderer>().sharedMaterial = yellowMat;
                 Object.DestroyImmediate(ys.GetComponent<Collider>());
             }
@@ -235,7 +237,7 @@ public class ChallengeBuilder : EditorWindow
             GameObject newCar = PrefabUtility.InstantiatePrefab(originalCar) as GameObject;
             if (newCar == null) newCar = Object.Instantiate(originalCar);
             newCar.name = "PlayerCar";
-            newCar.transform.position = new Vector3(0f, 0.5f, -80f);
+            newCar.transform.position = new Vector3(0f, 0.5f, carStartZ);
             newCar.transform.rotation = Quaternion.identity;
             SceneManager.MoveGameObjectToScene(newCar, challengeScene);
 
