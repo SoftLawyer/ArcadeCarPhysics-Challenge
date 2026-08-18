@@ -154,8 +154,8 @@ public class ChallengeAIDriver : MonoBehaviour
                 float curFwdSpeed = rb.linearVelocity.z;
                 float newFwdSpeed = Mathf.MoveTowards(curFwdSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
 
-                // Yön kesinlikle düz ileri, Y dikey kuvveti aşağı (asfalta yapıştır)
-                rb.linearVelocity = new Vector3(0f, -6f, newFwdSpeed);
+                // Yön kesinlikle düz ileri, yere çarpıp takılmaması için fizik motorunun Y hızını koru
+                rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, newFwdSpeed);
 
                 // Arabanın burnunu düz tut (asla havalanmasın)
                 transform.rotation = Quaternion.Euler(0f, 0f, 0f);
