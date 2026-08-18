@@ -11,8 +11,8 @@ using UnityEngine;
 public class ChallengeAIDriver : MonoBehaviour
 {
     [Header("AI Sürüş Ayarları")]
-    public float startDelay = 0.8f;
-    public float targetTopSpeedKmh = 195f;
+    public float startDelay = 0.2f; // Anında kalkış
+    public float targetTopSpeedKmh = 260f; // 2 kat daha yüksek maksimum hız
     public float airThresholdY = 2.5f;
 
     [Header("Gerçek Motor Sesleri (i6 German)")]
@@ -110,7 +110,7 @@ public class ChallengeAIDriver : MonoBehaviour
                 if (timer >= startDelay)
                 {
                     currentState = State.Driving;
-                    Debug.Log("🚀 [i6 German AI] Gaz Kökleniyor! Tam devir hızlanma başladı...");
+                    Debug.Log("🚀 [i6 German AI] ROKET KALKIŞ! 2X Hızlanma Başladı...");
                 }
                 break;
 
@@ -143,17 +143,17 @@ public class ChallengeAIDriver : MonoBehaviour
             float speed = rb.linearVelocity.magnitude;
             float targetSpeedMs = targetTopSpeedKmh / 3.6f;
 
-            // Güçlü spor araba ivmelenmesi
+            // 2 Kat Güçlü ve Patlayıcı İvmelenme (Twin Turbo Roket Hızı)
             float speedDiff = targetSpeedMs - speed;
             if (speedDiff > 0)
             {
-                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 8.5f, 0f, rb.mass * 130f);
+                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 24f, 0f, rb.mass * 320f);
                 rb.AddForce(fwd * accelForce, ForceMode.Force);
             }
 
             // Şeritten sağa sola sapmayı önle (Rampayı tam ortala)
             float xOffset = transform.position.x;
-            rb.AddForce(new Vector3(-xOffset * rb.mass * 12f, 0f, 0f), ForceMode.Force);
+            rb.AddForce(new Vector3(-xOffset * rb.mass * 15f, 0f, 0f), ForceMode.Force);
         }
         else if (currentState == State.InAir)
         {
@@ -161,7 +161,7 @@ public class ChallengeAIDriver : MonoBehaviour
             Vector3 currentUp = transform.up;
             Vector3 desiredUp = Vector3.up;
             Vector3 rotAxis = Vector3.Cross(currentUp, desiredUp);
-            rb.AddTorque(rotAxis * rb.mass * 25f, ForceMode.Force);
+            rb.AddTorque(rotAxis * rb.mass * 30f, ForceMode.Force);
         }
     }
 
