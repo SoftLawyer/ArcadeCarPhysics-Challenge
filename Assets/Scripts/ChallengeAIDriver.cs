@@ -11,8 +11,8 @@ using UnityEngine;
 public class ChallengeAIDriver : MonoBehaviour
 {
     [Header("AI Sürüş Ayarları")]
-    public float startDelay = 0.2f; // Anında kalkış
-    public float targetTopSpeedKmh = 260f; // 2 kat daha yüksek maksimum hız
+    public float startDelay = 0.1f; // Anında kalkış
+    public float targetTopSpeedKmh = 400f; // 400 km/h Hiper Hız!
     public float airThresholdY = 2.5f;
 
     [Header("Gerçek Motor Sesleri (i6 German)")]
@@ -23,7 +23,7 @@ public class ChallengeAIDriver : MonoBehaviour
     public AudioClip highClip;
     public AudioClip maxRpmClip;
 
-    [Range(0f, 1f)] public float masterVolume = 0.9f;
+    [Range(0f, 1f)] public float masterVolume = 0.95f;
 
     private ArcadeCar arcadeCar;
     private Rigidbody rb;
@@ -110,7 +110,7 @@ public class ChallengeAIDriver : MonoBehaviour
                 if (timer >= startDelay)
                 {
                     currentState = State.Driving;
-                    Debug.Log("🚀 [i6 German AI] ROKET KALKIŞ! 2X Hızlanma Başladı...");
+                    Debug.Log("🚀 [i6 German AI] 400 KM/H HİPER HIZ LANSMANI BAŞLADI!");
                 }
                 break;
 
@@ -118,7 +118,7 @@ public class ChallengeAIDriver : MonoBehaviour
                 if (transform.position.y > airThresholdY)
                 {
                     currentState = State.InAir;
-                    Debug.Log($"🦅 [i6 German AI] Uçuş Başladı! Hız: {speedKmh:F1} km/h");
+                    Debug.Log($"🦅 [i6 German AI] 400 KM/H İLE UÇUŞ BAŞLADI! Hız: {speedKmh:F1} km/h");
                 }
                 break;
 
@@ -143,25 +143,25 @@ public class ChallengeAIDriver : MonoBehaviour
             float speed = rb.linearVelocity.magnitude;
             float targetSpeedMs = targetTopSpeedKmh / 3.6f;
 
-            // 2 Kat Güçlü ve Patlayıcı İvmelenme (Twin Turbo Roket Hızı)
+            // 400 km/s Roket İtiş Gücü
             float speedDiff = targetSpeedMs - speed;
             if (speedDiff > 0)
             {
-                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 24f, 0f, rb.mass * 320f);
+                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 48f, 0f, rb.mass * 600f);
                 rb.AddForce(fwd * accelForce, ForceMode.Force);
             }
 
-            // Şeritten sağa sola sapmayı önle (Rampayı tam ortala)
+            // Yüksek hızda çizgiden milimetrik sapmayı bile anında düzelt
             float xOffset = transform.position.x;
-            rb.AddForce(new Vector3(-xOffset * rb.mass * 15f, 0f, 0f), ForceMode.Force);
+            rb.AddForce(new Vector3(-xOffset * rb.mass * 30f, 0f, 0f), ForceMode.Force);
         }
         else if (currentState == State.InAir)
         {
-            // Havadayken burnunu hedef doğrultusunda tut
+            // Havadayken füze gibi burnunu hedefe kitle ve stabil tut
             Vector3 currentUp = transform.up;
             Vector3 desiredUp = Vector3.up;
             Vector3 rotAxis = Vector3.Cross(currentUp, desiredUp);
-            rb.AddTorque(rotAxis * rb.mass * 30f, ForceMode.Force);
+            rb.AddTorque(rotAxis * rb.mass * 45f, ForceMode.Force);
         }
     }
 
