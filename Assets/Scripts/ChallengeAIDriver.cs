@@ -46,6 +46,13 @@ public class ChallengeAIDriver : MonoBehaviour
         arcadeCar = GetComponent<ArcadeCar>();
         rb = GetComponent<Rigidbody>();
 
+        if (rb != null)
+        {
+            // Unity'nin varsayılan hız limitini kaldır (350 m/s = 1260 km/h kapasite)
+            rb.maxLinearVelocity = 350f;
+            rb.linearDamping = 0f;
+        }
+
         // Oyuncu klavye girişlerini kapat, AI sürsün
         if (arcadeCar != null)
         {
@@ -140,20 +147,21 @@ public class ChallengeAIDriver : MonoBehaviour
             fwd.y = 0f;
             fwd.Normalize();
 
-            float speed = rb.linearVelocity.magnitude;
-            float targetSpeedMs = targetTopSpeedKmh / 3.6f;
+            float targetSpeedMs = targetTopSpeedKmh / 3.6f; // 111.11 m/s = 400 km/h
+            Vector3 curVel = rb.linearVelocity;
+            float curFwdSpeed = Vector3.Dot(curVel, fwd);
 
-            // 400 km/s Roket İtiş Gücü
-            float speedDiff = targetSpeedMs - speed;
-            if (speedDiff > 0)
-            {
-                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 48f, 0f, rb.mass * 600f);
-                rb.AddForce(fwd * accelForce, ForceMode.Force);
-            }
+            // Tekerlek sürtünmesi veya drag engellerine takılmadan 400 km/s'ye kesin ulaş:
+            float accelRate = 28f; // m/s^2 ivmelenme
+            float newFwdSpeed = Mathf.MoveTowards(curFwdSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
 
-            // Yüksek hızda çizgiden milimetrik sapmayı bile anında düzelt
-            float xOffset = transform.position.x;
-            rb.AddForce(new Vector3(-xOffset * rb.mass * 30f, 0f, 0f), ForceMode.Force);
+            // İleri hızı uygula, Y dikey hızını (zıplama/rampa açısı) koru
+            rb.linearVelocity = fwd * newFwdSpeed + new Vector3(0f, curVel.y, 0f);
+
+            // Şeridi tam ortala
+            Vector3 pos = transform.position;
+            pos.x = Mathf.Lerp(pos.x, 0f, Time.fixedDeltaTime * 8f);
+            transform.position = pos;
         }
         else if (currentState == State.InAir)
         {
@@ -163,6 +171,18 @@ public class ChallengeAIDriver : MonoBehaviour
             Vector3 rotAxis = Vector3.Cross(currentUp, desiredUp);
             rb.AddTorque(rotAxis * rb.mass * 45f, ForceMode.Force);
         }
+    }
+
+    void OnGUI()
+    {
+        // Ekranda büyük ve net dijital hız göstergesi
+        float speedKmh = rb != null ? rb.linearVelocity.magnitude * 3.6f : 0f;
+        GUIStyle speedStyle = new GUIStyle();
+        speedStyle.fontSize = 38;
+        speedStyle.fontStyle = FontStyle.Bold;
+        speedStyle.normal.textColor = (speedKmh >= 380f) ? Color.red : Color.green;
+
+        GUI.Label(new Rect(40, Screen.height - 90, 400, 70), $"HIZ: {speedKmh:F0} KM/H", speedStyle);
     }
 
     void UpdateEngineAudio(float speedKmh)
