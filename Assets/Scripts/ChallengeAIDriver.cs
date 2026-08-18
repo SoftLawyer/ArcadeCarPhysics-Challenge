@@ -148,32 +148,43 @@ public class ChallengeAIDriver : MonoBehaviour
             float accelRate = 75f; // m/s^2 hiper ivmelenme
             float curZ = transform.position.z;
 
-            // 1. DÜZ OTOBANDA (Rampadan Önce: Z < 40) -> ASLA HAVALANMAZ, YERE YAPIŞIK
+            // Araba modülünün kendi süspansiyon sallantılarını iptal et (Yağ gibi kayması için)
+            if (rb.angularVelocity.magnitude > 0) 
+            {
+                rb.angularVelocity = Vector3.Lerp(rb.angularVelocity, Vector3.zero, Time.fixedDeltaTime * 10f);
+            }
+
+            // 1. DÜZ YOL - Maglev (Manyetik Tren) Kusursuzluğu
             if (curZ < 40f)
             {
                 float curFwdSpeed = rb.linearVelocity.z;
                 float newFwdSpeed = Mathf.MoveTowards(curFwdSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
 
-                // Yön kesinlikle düz ileri, yere çarpıp takılmaması için fizik motorunun Y hızını koru
-                rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, newFwdSpeed);
+                // Matematiksel Kusursuz P-Kontrol (Proportional Control)
+                float errorX = 0f - transform.position.x; // Şerit merkezi
+                float errorY = 0.5f - transform.position.y; // Asfaltın hemen üstü (Süspansiyon sarsıntısı yok!)
 
-                // Arabanın burnunu düz tut (asla havalanmasın)
-                transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+                float velX = errorX * 15f; 
+                float velY = errorY * 15f; 
 
-                // Şeridi tam ortala
-                Vector3 pos = transform.position;
-                pos.x = Mathf.Lerp(pos.x, 0f, Time.fixedDeltaTime * 10f);
-                transform.position = pos;
+                // Araba pürüzlere takılmadan, havada kayar gibi ilerler
+                rb.linearVelocity = new Vector3(velX, velY, newFwdSpeed);
+
+                // Rotasyonu pürüzsüzce (Slerp ve MoveRotation ile) sıfırda tut
+                Quaternion targetRot = Quaternion.Euler(0f, 0f, 0f);
+                rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRot, Time.fixedDeltaTime * 20f));
             }
             // 2. RAMPADA (40 <= Z < 95) -> TAM 18 DERECE EĞİMLE TIRMAN
             else
             {
                 Vector3 rampDir = Quaternion.Euler(-18f, 0f, 0f) * Vector3.forward;
-                float curRampSpeed = Vector3.Dot(rb.linearVelocity, rampDir);
+                float curRampSpeed = rb.linearVelocity.magnitude;
                 float newRampSpeed = Mathf.MoveTowards(curRampSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
 
                 rb.linearVelocity = rampDir * newRampSpeed;
-                transform.rotation = Quaternion.Euler(-18f, 0f, 0f);
+
+                Quaternion targetRot = Quaternion.Euler(-18f, 0f, 0f);
+                rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRot, Time.fixedDeltaTime * 20f));
             }
         }
         else if (currentState == State.InAir)
