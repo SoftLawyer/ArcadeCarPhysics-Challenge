@@ -2,66 +2,101 @@ using UnityEngine;
 
 /// <summary>
 /// ChallengeAIDriver:
-/// 1. Oyunu başlatınca arabayı tam gaz rampaya doğru sürer.
-/// 2. Havadayken ve yoldayken harici ses dosyasına ihtiyaç duymadan
-///    matematiksel/prosedürel motor sesi (RPM tabanlı), rüzgar ve çarpma sesi üretir.
+/// 1. i6 German gerçek stüdyo kayıtlı motor seslerini (Idle, Low, Med, High, MaxRPM, Startup)
+///    arabanın devrine ve hızına göre gerçek zamanlı cross-fade ve pitch ile çalar.
+/// 2. Oyunu başlatınca arabayı tam gaz rampaya doğru sürer ve hedefe fırlatır.
 /// </summary>
 [RequireComponent(typeof(ArcadeCar))]
 [RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(AudioSource))]
 public class ChallengeAIDriver : MonoBehaviour
 {
     [Header("AI Sürüş Ayarları")]
-    public float startDelay = 0.5f;
-    public float targetTopSpeedKmh = 190f;
+    public float startDelay = 0.8f;
+    public float targetTopSpeedKmh = 195f;
     public float airThresholdY = 2.5f;
 
-    [Header("Motor Sesi Ayarları")]
-    [Range(0f, 1f)] public float masterVolume = 0.8f;
-    public float idleRpmFreq = 55f;
-    public float maxRpmFreq = 260f;
+    [Header("Gerçek Motor Sesleri (i6 German)")]
+    public AudioClip startClip;
+    public AudioClip idleClip;
+    public AudioClip lowClip;
+    public AudioClip medClip;
+    public AudioClip highClip;
+    public AudioClip maxRpmClip;
+
+    [Range(0f, 1f)] public float masterVolume = 0.9f;
 
     private ArcadeCar arcadeCar;
     private Rigidbody rb;
-    private AudioSource audioSource;
+
+    // Çok kanallı gerçek motor ses kaynakları (AudioSource Layering)
+    private AudioSource srcStartup;
+    private AudioSource srcIdle;
+    private AudioSource srcLow;
+    private AudioSource srcMed;
+    private AudioSource srcHigh;
+    private AudioSource srcMaxRpm;
 
     private enum State { Waiting, Driving, InAir, Crashed }
     private State currentState = State.Waiting;
     private float timer = 0f;
-
-    // Prosedürel ses sentezi değişkenleri
-    private float sampleRate = 48000f;
-    private float phaseMain = 0f;
-    private float phaseSub = 0f;
-    private float phaseExhaust = 0f;
-    private float currentFreq = 50f;
-    private float crashNoiseTimer = 0f;
-    private float windNoiseLevel = 0f;
+    private float virtualRpmRatio = 0f;
 
     void Awake()
     {
-        sampleRate = AudioSettings.outputSampleRate;
-    }
-
-    void Start()
-    {
         arcadeCar = GetComponent<ArcadeCar>();
         rb = GetComponent<Rigidbody>();
-        audioSource = GetComponent<AudioSource>();
 
         // Oyuncu klavye girişlerini kapat, AI sürsün
-        arcadeCar.controllable = false;
-
-        // AudioSource ayarları
-        if (audioSource != null)
+        if (arcadeCar != null)
         {
-            audioSource.playOnAwake = true;
-            audioSource.spatialBlend = 0f; // 2D net ses
-            audioSource.volume = 1f;
-            audioSource.Play();
+            arcadeCar.controllable = false;
         }
 
-        Debug.Log("🏎️ [ChallengeAIDriver] Yapay Zeka Sürücü ve Prosedürel Ses Motoru Devrede!");
+        SetupAudioSources();
+    }
+
+    void SetupAudioSources()
+    {
+        // Ses kaynaklarını oluştur
+        srcStartup = CreateAudioSource("Audio_Startup", false);
+        srcIdle = CreateAudioSource("Audio_Idle", true);
+        srcLow = CreateAudioSource("Audio_Low", true);
+        srcMed = CreateAudioSource("Audio_Med", true);
+        srcHigh = CreateAudioSource("Audio_High", true);
+        srcMaxRpm = CreateAudioSource("Audio_MaxRPM", true);
+
+        // Klipleri ata
+        if (srcStartup) srcStartup.clip = startClip;
+        if (srcIdle) srcIdle.clip = idleClip;
+        if (srcLow) srcLow.clip = lowClip;
+        if (srcMed) srcMed.clip = medClip;
+        if (srcHigh) srcHigh.clip = highClip;
+        if (srcMaxRpm) srcMaxRpm.clip = maxRpmClip;
+
+        // Döngüleri başlat (başta sessiz)
+        if (srcIdle && idleClip) { srcIdle.volume = masterVolume; srcIdle.Play(); }
+        if (srcLow && lowClip) { srcLow.volume = 0f; srcLow.Play(); }
+        if (srcMed && medClip) { srcMed.volume = 0f; srcMed.Play(); }
+        if (srcHigh && highClip) { srcHigh.volume = 0f; srcHigh.Play(); }
+        if (srcMaxRpm && maxRpmClip) { srcMaxRpm.volume = 0f; srcMaxRpm.Play(); }
+
+        if (srcStartup && startClip)
+        {
+            srcStartup.volume = masterVolume;
+            srcStartup.Play();
+        }
+    }
+
+    private AudioSource CreateAudioSource(string name, bool loop)
+    {
+        GameObject child = new GameObject(name);
+        child.transform.SetParent(transform);
+        child.transform.localPosition = Vector3.zero;
+        AudioSource src = child.AddComponent<AudioSource>();
+        src.loop = loop;
+        src.playOnAwake = false;
+        src.spatialBlend = 0f; // 2D net ses
+        return src;
     }
 
     void Update()
@@ -69,14 +104,13 @@ public class ChallengeAIDriver : MonoBehaviour
         timer += Time.deltaTime;
         float speedKmh = rb.linearVelocity.magnitude * 3.6f;
 
-        // State machine
         switch (currentState)
         {
             case State.Waiting:
                 if (timer >= startDelay)
                 {
                     currentState = State.Driving;
-                    Debug.Log("🚀 [AI Sürücü] Gaz Kökleniyor! Hedef: Rampa ve Dev Karakter!");
+                    Debug.Log("🚀 [i6 German AI] Gaz Kökleniyor! Tam devir hızlanma başladı...");
                 }
                 break;
 
@@ -84,31 +118,18 @@ public class ChallengeAIDriver : MonoBehaviour
                 if (transform.position.y > airThresholdY)
                 {
                     currentState = State.InAir;
-                    Debug.Log($"🦅 [AI Sürücü] Araç Havalandı! Hız: {speedKmh:F1} km/h");
+                    Debug.Log($"🦅 [i6 German AI] Uçuş Başladı! Hız: {speedKmh:F1} km/h");
                 }
                 break;
 
             case State.InAir:
-                windNoiseLevel = Mathf.Lerp(windNoiseLevel, 0.4f, Time.deltaTime * 3f);
                 break;
 
             case State.Crashed:
-                windNoiseLevel = Mathf.Lerp(windNoiseLevel, 0f, Time.deltaTime * 5f);
                 break;
         }
 
-        // Ses frekansı (RPM) hesapla
-        float speedRatio = Mathf.Clamp01(speedKmh / targetTopSpeedKmh);
-        float targetFreq = (currentState == State.Waiting) 
-            ? idleRpmFreq 
-            : Mathf.Lerp(idleRpmFreq, maxRpmFreq, Mathf.Pow(speedRatio, 0.8f));
-        
-        currentFreq = Mathf.Lerp(currentFreq, targetFreq, Time.deltaTime * 6f);
-
-        if (crashNoiseTimer > 0f)
-        {
-            crashNoiseTimer -= Time.deltaTime;
-        }
+        UpdateEngineAudio(speedKmh);
     }
 
     void FixedUpdate()
@@ -122,86 +143,64 @@ public class ChallengeAIDriver : MonoBehaviour
             float speed = rb.linearVelocity.magnitude;
             float targetSpeedMs = targetTopSpeedKmh / 3.6f;
 
-            // Güçlü ivmelenme kuvveti
+            // Güçlü spor araba ivmelenmesi
             float speedDiff = targetSpeedMs - speed;
             if (speedDiff > 0)
             {
-                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 8f, 0f, rb.mass * 120f);
+                float accelForce = Mathf.Clamp(speedDiff * rb.mass * 8.5f, 0f, rb.mass * 130f);
                 rb.AddForce(fwd * accelForce, ForceMode.Force);
             }
 
-            // Şeritten sapmayı engelle (tam merkezde rampaya girmesini sağla)
+            // Şeritten sağa sola sapmayı önle (Rampayı tam ortala)
             float xOffset = transform.position.x;
-            rb.AddForce(new Vector3(-xOffset * rb.mass * 10f, 0f, 0f), ForceMode.Force);
+            rb.AddForce(new Vector3(-xOffset * rb.mass * 12f, 0f, 0f), ForceMode.Force);
         }
         else if (currentState == State.InAir)
         {
-            // Havadayken araba aerodinamik olarak burnunu korusun
+            // Havadayken burnunu hedef doğrultusunda tut
             Vector3 currentUp = transform.up;
             Vector3 desiredUp = Vector3.up;
             Vector3 rotAxis = Vector3.Cross(currentUp, desiredUp);
-            rb.AddTorque(rotAxis * rb.mass * 20f, ForceMode.Force);
+            rb.AddTorque(rotAxis * rb.mass * 25f, ForceMode.Force);
         }
+    }
+
+    void UpdateEngineAudio(float speedKmh)
+    {
+        float targetRatio = Mathf.Clamp01(speedKmh / targetTopSpeedKmh);
+        
+        // Vites geçişi hissi veren dinamik devir eğrisi
+        float gearFactor = (targetRatio * 4f) % 1f;
+        float combinedRpm = Mathf.Lerp(targetRatio, gearFactor, 0.35f);
+        virtualRpmRatio = Mathf.Lerp(virtualRpmRatio, (currentState == State.Waiting) ? 0f : combinedRpm, Time.deltaTime * 5f);
+
+        float pitchModifier = Mathf.Lerp(0.85f, 1.35f, virtualRpmRatio);
+
+        // Katmanlı ses harmanlama (Cross-Fade)
+        // 0.0 - 0.25: Idle -> Low
+        // 0.25 - 0.55: Low -> Med
+        // 0.55 - 0.85: Med -> High
+        // 0.85 - 1.00: High -> MaxRPM
+
+        float wIdle = Mathf.Clamp01(1f - (targetRatio * 3.5f));
+        float wLow = Mathf.Clamp01(1f - Mathf.Abs(targetRatio - 0.25f) * 4f);
+        float wMed = Mathf.Clamp01(1f - Mathf.Abs(targetRatio - 0.55f) * 3.5f);
+        float wHigh = Mathf.Clamp01(1f - Mathf.Abs(targetRatio - 0.80f) * 3.5f);
+        float wMax = Mathf.Clamp01((targetRatio - 0.75f) * 4f);
+
+        if (srcIdle) { srcIdle.volume = wIdle * masterVolume; srcIdle.pitch = Mathf.Lerp(0.9f, 1.15f, targetRatio); }
+        if (srcLow) { srcLow.volume = wLow * masterVolume; srcLow.pitch = pitchModifier; }
+        if (srcMed) { srcMed.volume = wMed * masterVolume; srcMed.pitch = pitchModifier; }
+        if (srcHigh) { srcHigh.volume = wHigh * masterVolume; srcHigh.pitch = pitchModifier; }
+        if (srcMaxRpm) { srcMaxRpm.volume = wMax * masterVolume; srcMaxRpm.pitch = Mathf.Lerp(1.0f, 1.25f, targetRatio); }
     }
 
     void OnCollisionEnter(Collision col)
     {
-        if (col.relativeVelocity.magnitude > 6f)
+        if (col.relativeVelocity.magnitude > 6f && currentState == State.InAir)
         {
-            crashNoiseTimer = 1.2f;
-            if (currentState == State.InAir)
-            {
-                currentState = State.Crashed;
-                Debug.Log($"💥 [AI Sürücü] ÇARPIŞMA! Çarpışma Hızı: {col.relativeVelocity.magnitude * 3.6f:F1} km/h");
-            }
+            currentState = State.Crashed;
+            Debug.Log($"💥 [i6 German AI] HEDEFE VURULDU! Çarpışma Hızı: {col.relativeVelocity.magnitude * 3.6f:F1} km/h");
         }
     }
-
-    // Unity DSP Sentezleyici: Harici MP3 dosyası olmadan saf motor/egzoz/rüzgar/patlama sesi üretir
-    void OnAudioFilterRead(float[] data, int channels)
-    {
-        if (sampleRate <= 0f) sampleRate = 48000f;
-        float mainIncrement = currentFreq * 2f * Mathf.PI / sampleRate;
-        float subIncrement = (currentFreq * 0.5f) * 2f * Mathf.PI / sampleRate;
-        float exhaustIncrement = (currentFreq * 2.5f) * 2f * Mathf.PI / sampleRate;
-
-        for (int i = 0; i < data.Length; i += channels)
-        {
-            phaseMain += mainIncrement;
-            phaseSub += subIncrement;
-            phaseExhaust += exhaustIncrement;
-
-            if (phaseMain > 2f * Mathf.PI) phaseMain -= 2f * Mathf.PI;
-            if (phaseSub > 2f * Mathf.PI) phaseSub -= 2f * Mathf.PI;
-            if (phaseExhaust > 2f * Mathf.PI) phaseExhaust -= 2f * Mathf.PI;
-
-            // 1. Motor Harmonikleri (Sawtooth & Sine karması)
-            float mainWave = Mathf.Sin(phaseMain) * 0.4f;
-            float subWave = Mathf.Sin(phaseSub) * 0.3f;
-            float saw = ((phaseMain / Mathf.PI) - 1f) * 0.2f;
-            float exhaust = Mathf.Sin(phaseExhaust) * 0.15f;
-
-            float engineSignal = (mainWave + subWave + saw + exhaust) * 0.6f;
-
-            // 2. Rüzgar / Hız Uçuş Sesi (Thread-safe saf matematiksel White Noise)
-            noiseSeed = (noiseSeed * 196314165 + 907633515);
-            float whiteNoise = ((float)(noiseSeed & 0x7FFFFFFF) / 2147483647f) * 2f - 1f;
-            float windSignal = whiteNoise * windNoiseLevel;
-
-            // 3. Çarpışma / Patlama Sesi
-            float crashSignal = 0f;
-            if (crashNoiseTimer > 0f)
-            {
-                crashSignal = whiteNoise * (crashNoiseTimer / 1.2f) * 0.9f;
-            }
-
-            float finalSample = (engineSignal + windSignal + crashSignal) * masterVolume;
-
-            for (int c = 0; c < channels; c++)
-            {
-                data[i + c] = finalSample;
-            }
-        }
-    }
-    private uint noiseSeed = 123456789;
 }

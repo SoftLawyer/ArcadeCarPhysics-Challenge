@@ -239,15 +239,19 @@ public class ChallengeBuilder : EditorWindow
             newCar.transform.rotation = Quaternion.identity;
             SceneManager.MoveGameObjectToScene(newCar, challengeScene);
 
-            // Yapay Zeka Sürücü ve Ses Sistemi Ekle
-            AudioSource aSrc = newCar.GetComponent<AudioSource>();
-            if (aSrc == null) aSrc = newCar.AddComponent<AudioSource>();
-            aSrc.spatialBlend = 0f;
-
+            // Yapay Zeka Sürücü ve Gerçek Motor Seslerini Ekle
             ChallengeAIDriver aiDriver = newCar.GetComponent<ChallengeAIDriver>();
             if (aiDriver == null) aiDriver = newCar.AddComponent<ChallengeAIDriver>();
 
-            Debug.Log("[5/5] Araba ve Yapay Zeka Sürücü (AI + Ses) eklendi: " + newCar.name);
+            string audioPath = "Assets/Car Engine Sound - i6 German Free/Assets/Audio/i6_german_free/";
+            aiDriver.startClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "startup.wav");
+            aiDriver.idleClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "idle.wav");
+            aiDriver.lowClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "low_on.wav");
+            aiDriver.medClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "med_on.wav");
+            aiDriver.highClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "high_on.wav");
+            aiDriver.maxRpmClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "maxRPM.wav");
+
+            Debug.Log("[5/5] Araba ve i6 German Gerçek Motor Sesi (AI + Audio) eklendi: " + newCar.name);
 
             // Kamera
             GameObject origCam = GameObject.Find("Main Camera");
