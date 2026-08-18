@@ -9,8 +9,8 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 4fac52a591ac54f8e95bc0064367318a
   - enabled: 1
-    path: Assets/Scenes/Challenge.unity
-    guid: 7c0104ddebaa6415e9a11dec67c5f047
+    path: Assets/Vehicle Physics Pro/Sample Assets/Locations/VP Playground Lite.unity
+    guid: 46cb31f80e3c96a46b7436be25f51214
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f,
       type: 2}

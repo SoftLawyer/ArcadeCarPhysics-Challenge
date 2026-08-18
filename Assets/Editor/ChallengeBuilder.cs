@@ -19,7 +19,7 @@ public class ChallengeBuilder : EditorWindow
     const float RAMP_W      = 18f;
     const float RAMP_THICK  = 0.15f;
     const float RAMP_START_Z = 40f;
-    const float SKY_HEIGHT = 200f; // Şehrin üstünde havada yüzen pist!
+    const float SKY_HEIGHT = 100f; // Şehrin üstünde havada yüzen pist!
 
     [MenuItem("Tools/Build Challenge Level (Current Scene)")]
     public static void BuildChallengeLevel()
@@ -120,9 +120,9 @@ public class ChallengeBuilder : EditorWindow
         Debug.Log("[3/5] Pist ve rampa olusturuluyor...");
 
         // ─── ANA ASFALT PİST (10 KAT DAHA UZUN OTOBAN: 1.2 KM DÜZLÜK) ───────────────────
-        float runwayLength = 1300f; // 10 kat uzatılmış devasa otoban
-        float runwayCenterZ = -600f;
-        float carStartZ = -1150f;   // Rampa öncesi 1190 metre kesintisiz hızlanma yolu
+        float runwayLength = 400f; // 10 kat uzatılmış devasa otoban
+        float runwayCenterZ = -150f;
+        float carStartZ = -300f;   // Rampa öncesi 1190 metre kesintisiz hızlanma yolu
 
         GameObject runway = GameObject.CreatePrimitive(PrimitiveType.Cube);
         runway.name = "Runway_Asphalt";
@@ -266,6 +266,7 @@ public class ChallengeBuilder : EditorWindow
                     newCam.name = "ChallengeCamera";
                     newCam.tag = "MainCamera";
                     newCam.SetActive(true);
+                    newCam.GetComponent<Camera>().farClipPlane = 10000f;
                     SceneManager.MoveGameObjectToScene(newCam, challengeScene);
 
                     if (newCam.GetComponent<AudioListener>() == null)

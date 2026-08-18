@@ -162,7 +162,7 @@ public class ChallengeAIDriver : MonoBehaviour
 
                 // Matematiksel Kusursuz P-Kontrol (Proportional Control)
                 float errorX = 0f - transform.position.x; // Şerit merkezi
-                float errorY = 200.5f - transform.position.y; // Asfaltın (Y=200) hemen üstü
+                float errorY = 100.5f - transform.position.y; // Asfaltın (Y=100) hemen üstü
 
                 float velX = errorX * 15f; 
                 float velY = errorY * 15f; 
