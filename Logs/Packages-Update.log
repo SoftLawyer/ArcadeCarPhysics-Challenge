@@ -39,3 +39,11 @@ The following packages were updated:
 The following packages were removed:
   com.unity.package-manager-ui@2.0.8
   com.unity.textmeshpro@1.4.1
+
+=== Tue Aug 18 09:26:31 2026
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ugui from version 1.0.0 to 2.0.0

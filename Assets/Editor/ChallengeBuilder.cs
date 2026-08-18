@@ -19,8 +19,9 @@ public class ChallengeBuilder : EditorWindow
     const float RAMP_W      = 18f;
     const float RAMP_THICK  = 0.15f;
     const float RAMP_START_Z = 40f;
+    const float SKY_HEIGHT = 200f; // Şehrin üstünde havada yüzen pist!
 
-    [MenuItem("Tools/Build Challenge Level")]
+    [MenuItem("Tools/Build Challenge Level (Current Scene)")]
     public static void BuildChallengeLevel()
     {
         if (EditorApplication.isPlaying)
@@ -29,28 +30,10 @@ public class ChallengeBuilder : EditorWindow
             return;
         }
 
-        string challengePath = "Assets/Scenes/Challenge.unity";
-
-        // Challenge.unity mevcut mu kontrol et
-        if (!System.IO.File.Exists(challengePath))
-        {
-            EditorUtility.DisplayDialog(
-                "Sahne Bulunamadi!",
-                "Assets/Scenes/Challenge.unity bulunamadi.\n\n" +
-                "Lutfen:\n" +
-                "1. File > Open Scene > SimplePoly City Demo Scene\n" +
-                "2. File > Save As > Assets/Scenes/Challenge.unity\n" +
-                "3. Bu butona tekrar basin.",
-                "Tamam");
-            return;
-        }
+        Scene challengeScene = EditorSceneManager.GetActiveScene();
 
         Debug.Log("=================================================================");
-        Debug.Log("[CHALLENGE BUILDER v4] SimplePoly City haritasi uzerine stunt track ekleniyor...");
-
-        // Challenge.unity'yi ac (SimplePoly City haritasi icinde)
-        Scene challengeScene = EditorSceneManager.OpenScene(challengePath, OpenSceneMode.Single);
-        Debug.Log("[1/5] Challenge.unity acildi. SimplePoly City haritasi yuklu.");
+        Debug.Log("[CHALLENGE BUILDER v5] " + challengeScene.name + " haritasi uzerine gokyuzu stunt track ekleniyor...");
 
         // Sahne nesnelerini logla
         GameObject[] roots = challengeScene.GetRootGameObjects();
@@ -143,7 +126,7 @@ public class ChallengeBuilder : EditorWindow
 
         GameObject runway = GameObject.CreatePrimitive(PrimitiveType.Cube);
         runway.name = "Runway_Asphalt";
-        runway.transform.position = new Vector3(0f, 0f, runwayCenterZ);
+        runway.transform.position = new Vector3(0f, SKY_HEIGHT, runwayCenterZ);
         runway.transform.localScale = new Vector3(ROAD_W, 0.08f, runwayLength);
         runway.GetComponent<Renderer>().sharedMaterial = asphaltMat;
 
@@ -152,7 +135,7 @@ public class ChallengeBuilder : EditorWindow
         {
             GameObject sw = GameObject.CreatePrimitive(PrimitiveType.Cube);
             sw.name = "Sidewalk";
-            sw.transform.position = new Vector3(side * (ROAD_W / 2f + 2.2f), 0.02f, runwayCenterZ);
+            sw.transform.position = new Vector3(side * (ROAD_W / 2f + 2.2f), SKY_HEIGHT + 0.02f, runwayCenterZ);
             sw.transform.localScale = new Vector3(4f, 0.1f, runwayLength);
             sw.GetComponent<Renderer>().sharedMaterial = sidewalkMat;
         }
@@ -163,7 +146,7 @@ public class ChallengeBuilder : EditorWindow
         {
             GameObject s = GameObject.CreatePrimitive(PrimitiveType.Cube);
             s.transform.SetParent(stripeParent.transform);
-            s.transform.position = new Vector3(0f, 0.05f, z);
+            s.transform.position = new Vector3(0f, SKY_HEIGHT + 0.05f, z);
             s.transform.localScale = new Vector3(0.3f, 0.02f, 3f);
             s.GetComponent<Renderer>().sharedMaterial = stripeMat;
             Object.DestroyImmediate(s.GetComponent<Collider>());
@@ -176,7 +159,7 @@ public class ChallengeBuilder : EditorWindow
             {
                 GameObject ys = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 ys.transform.SetParent(stripeParent.transform);
-                ys.transform.position = new Vector3(side * (ROAD_W / 2f - 0.4f), 0.05f, z);
+                ys.transform.position = new Vector3(side * (ROAD_W / 2f - 0.4f), SKY_HEIGHT + 0.05f, z);
                 ys.transform.localScale = new Vector3(0.22f, 0.02f, 6f);
                 ys.GetComponent<Renderer>().sharedMaterial = yellowMat;
                 Object.DestroyImmediate(ys.GetComponent<Collider>());
@@ -187,7 +170,7 @@ public class ChallengeBuilder : EditorWindow
         float lipY = (RAMP_THICK / 2f) * Mathf.Cos(rampRad);
         GameObject ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ramp.name = "Ramp";
-        ramp.transform.position = new Vector3(0f, rampDY / 2f - lipY, RAMP_START_Z + rampDZ / 2f);
+        ramp.transform.position = new Vector3(0f, SKY_HEIGHT + rampDY / 2f - lipY, RAMP_START_Z + rampDZ / 2f);
         ramp.transform.localScale = new Vector3(RAMP_W, RAMP_THICK, RAMP_LEN);
         ramp.transform.rotation = Quaternion.Euler(-RAMP_ANGLE, 0f, 0f);
         ramp.GetComponent<Renderer>().sharedMaterial = rampMat;
@@ -208,12 +191,12 @@ public class ChallengeBuilder : EditorWindow
             Object.DestroyImmediate(rs.GetComponent<Collider>());
         }
 
-        Debug.Log("[3/5] Pist ve rampa tamamlandi. Rampa tepesi Z=" + rampTopZ.ToString("F2") + " Y=" + rampTopY.ToString("F2"));
+        Debug.Log("[3/5] Pist ve rampa tamamlandi. Rampa tepesi Z=" + rampTopZ.ToString("F2") + " Y=" + (SKY_HEIGHT + rampTopY).ToString("F2"));
 
         // ─── HEDEF ───────────────────────────────────────────────────────────
         GameObject target = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         target.name = "GiantTarget";
-        target.transform.position = new Vector3(0f, targetY, targetZ);
+        target.transform.position = new Vector3(0f, SKY_HEIGHT + targetY, targetZ);
         target.transform.localScale = new Vector3(16f, 28f, 16f);
         target.GetComponent<Renderer>().sharedMaterial = targetMat;
         Rigidbody rb = target.AddComponent<Rigidbody>();
@@ -222,7 +205,7 @@ public class ChallengeBuilder : EditorWindow
 
         GameObject landing = GameObject.CreatePrimitive(PrimitiveType.Cube);
         landing.name = "LandingArea";
-        landing.transform.position = new Vector3(0f, 0f, targetZ + 30f);
+        landing.transform.position = new Vector3(0f, SKY_HEIGHT, targetZ + 30f);
         landing.transform.localScale = new Vector3(80f, 0.08f, 160f);
         landing.GetComponent<Renderer>().sharedMaterial = grassMat;
 
@@ -237,7 +220,7 @@ public class ChallengeBuilder : EditorWindow
             GameObject newCar = PrefabUtility.InstantiatePrefab(originalCar) as GameObject;
             if (newCar == null) newCar = Object.Instantiate(originalCar);
             newCar.name = "PlayerCar";
-            newCar.transform.position = new Vector3(0f, 0.5f, carStartZ);
+            newCar.transform.position = new Vector3(0f, SKY_HEIGHT + 0.5f, carStartZ);
             newCar.transform.rotation = Quaternion.identity;
             SceneManager.MoveGameObjectToScene(newCar, challengeScene);
 
