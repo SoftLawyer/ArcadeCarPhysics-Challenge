@@ -213,73 +213,89 @@ public class ChallengeBuilder : EditorWindow
 
         // ─── ARABA + KAMERA ──────────────────────────────────────────────────
         Scene sandboxScene = EditorSceneManager.OpenScene("Assets/Scenes/Sandbox.unity", OpenSceneMode.Additive);
-        GameObject originalCar = GameObject.Find("Car");
-
-        if (originalCar != null)
+        try
         {
-            GameObject newCar = PrefabUtility.InstantiatePrefab(originalCar) as GameObject;
-            if (newCar == null) newCar = Object.Instantiate(originalCar);
-            newCar.name = "PlayerCar";
-            newCar.transform.position = new Vector3(0f, SKY_HEIGHT + 0.5f, carStartZ);
-            newCar.transform.rotation = Quaternion.identity;
-            SceneManager.MoveGameObjectToScene(newCar, challengeScene);
-
-            // Yapay Zeka Sürücü ve Gerçek Motor Seslerini Ekle
-            ChallengeAIDriver aiDriver = newCar.GetComponent<ChallengeAIDriver>();
-            if (aiDriver == null) aiDriver = newCar.AddComponent<ChallengeAIDriver>();
-
-            string audioPath = "Assets/Car Engine Sound - i6 German Free/Assets/Audio/i6_german_free/";
-            aiDriver.startClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "startup.wav");
-            aiDriver.idleClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "idle.wav");
-            aiDriver.lowClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "low_on.wav");
-            aiDriver.medClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "med_on.wav");
-            aiDriver.highClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "high_on.wav");
-            aiDriver.maxRpmClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "maxRPM.wav");
-
-            Debug.Log("[5/5] Araba ve i6 German Gerçek Motor Sesi (AI + Audio) eklendi: " + newCar.name);
-
-            // Kamera
-            GameObject origCam = GameObject.Find("Main Camera");
-            if (origCam != null)
+            GameObject originalCar = null;
+            // Tüm root objeleri kontrol et
+            GameObject[] sandboxRoots = sandboxScene.GetRootGameObjects();
+            foreach (GameObject go in sandboxRoots)
             {
-                // Sahnede halihazirda SimplePoly Camera varsa devre disi birak
-                foreach (var existCam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
+                if (go.name == "Car") { originalCar = go; break; }
+            }
+
+            if (originalCar != null)
+            {
+                GameObject newCar = PrefabUtility.InstantiatePrefab(originalCar) as GameObject;
+                if (newCar == null) newCar = Object.Instantiate(originalCar);
+                newCar.name = "PlayerCar";
+                newCar.transform.position = new Vector3(0f, SKY_HEIGHT + 0.5f, carStartZ);
+                newCar.transform.rotation = Quaternion.identity;
+                SceneManager.MoveGameObjectToScene(newCar, challengeScene);
+
+                // Yapay Zeka Sürücü ve Gerçek Motor Seslerini Ekle
+                ChallengeAIDriver aiDriver = newCar.GetComponent<ChallengeAIDriver>();
+                if (aiDriver == null) aiDriver = newCar.AddComponent<ChallengeAIDriver>();
+
+                string audioPath = "Assets/Car Engine Sound - i6 German Free/Assets/Audio/i6_german_free/";
+                aiDriver.startClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "startup.wav");
+                aiDriver.idleClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "idle.wav");
+                aiDriver.lowClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "low_on.wav");
+                aiDriver.medClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "med_on.wav");
+                aiDriver.highClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "high_on.wav");
+                aiDriver.maxRpmClip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath + "maxRPM.wav");
+
+                Debug.Log("[5/5] Araba ve i6 German Gerçek Motor Sesi (AI + Audio) eklendi: " + newCar.name);
+
+                // Kamera
+                GameObject origCam = null;
+                foreach (GameObject go in sandboxRoots)
                 {
-                    if (existCam.gameObject.scene == challengeScene)
-                        existCam.gameObject.SetActive(false);
+                    if (go.name == "Main Camera") { origCam = go; break; }
                 }
 
-                GameObject newCam = Object.Instantiate(origCam);
-                newCam.name = "ChallengeCamera";
-                newCam.tag = "MainCamera";
-                newCam.SetActive(true);
-                SceneManager.MoveGameObjectToScene(newCam, challengeScene);
-
-                if (newCam.GetComponent<AudioListener>() == null)
+                if (origCam != null)
                 {
-                    newCam.AddComponent<AudioListener>();
-                }
+                    // Sahnede halihazirda SimplePoly Camera varsa devre disi birak
+                    foreach (var existCam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
+                    {
+                        if (existCam.gameObject.scene == challengeScene)
+                            existCam.gameObject.SetActive(false);
+                    }
 
-                CameraCar camScript = newCam.GetComponent<CameraCar>();
-                if (camScript != null)
-                {
-                    camScript.target             = newCar;
-                    camScript.targetHeightOffset = 1.2f;
-                    camScript.distance           = 7f;
-                    camScript.cameraHeightOffset = 2.8f;
+                    GameObject newCam = Object.Instantiate(origCam);
+                    newCam.name = "ChallengeCamera";
+                    newCam.tag = "MainCamera";
+                    newCam.SetActive(true);
+                    SceneManager.MoveGameObjectToScene(newCam, challengeScene);
+
+                    if (newCam.GetComponent<AudioListener>() == null)
+                    {
+                        newCam.AddComponent<AudioListener>();
+                    }
+
+                    CameraCar camScript = newCam.GetComponent<CameraCar>();
+                    if (camScript != null)
+                    {
+                        camScript.target             = newCar;
+                        camScript.targetHeightOffset = 1.2f;
+                        camScript.distance           = 7f;
+                        camScript.cameraHeightOffset = 2.8f;
+                    }
+                    Debug.Log("[5/5] Kamera eklendi: ChallengeCamera");
                 }
-                Debug.Log("[5/5] Kamera eklendi: ChallengeCamera");
+            }
+            else
+            {
+                Debug.LogWarning("[5/5] Sandbox.unity icinde 'Car' bulunamadi!");
             }
         }
-        else
+        finally
         {
-            Debug.LogWarning("[5/5] Sandbox.unity icinde 'Car' bulunamadi!");
+            EditorSceneManager.CloseScene(sandboxScene, true);
         }
 
-        EditorSceneManager.CloseScene(sandboxScene, true);
-
         // ─── KAYDET ──────────────────────────────────────────────────────────
-        EditorSceneManager.SaveScene(challengeScene, challengePath);
+        EditorSceneManager.SaveScene(challengeScene, challengeScene.path);
 
         string mainMenuPath = "Assets/Scenes/MainMenu.unity";
         if (System.IO.File.Exists(mainMenuPath))
@@ -287,14 +303,14 @@ public class ChallengeBuilder : EditorWindow
             EditorBuildSettings.scenes = new EditorBuildSettingsScene[]
             {
                 new EditorBuildSettingsScene(mainMenuPath, true),
-                new EditorBuildSettingsScene(challengePath, true),
+                new EditorBuildSettingsScene(challengeScene.path, true),
             };
         }
         else
         {
             EditorBuildSettings.scenes = new EditorBuildSettingsScene[]
             {
-                new EditorBuildSettingsScene(challengePath, true),
+                new EditorBuildSettingsScene(challengeScene.path, true),
             };
         }
 
