@@ -329,9 +329,9 @@ public class ChallengeBuilder : EditorWindow
 
         EditorUtility.DisplayDialog(
             "Harika!",
-            "SimplePoly City haritasi uzerine stunt track basariyla eklendi!\n\n" +
+            challengeScene.name + " haritasi uzerine stunt track basariyla eklendi!\n\n" +
             "Rampa Acisi: " + RAMP_ANGLE + " derece\n" +
-            "Rampa Tepesi: Y=" + rampTopY.ToString("F1") + "m, Z=" + rampTopZ.ToString("F1") + "m\n" +
+            "Rampa Tepesi: Y=" + (SKY_HEIGHT + rampTopY).ToString("F1") + "m, Z=" + rampTopZ.ToString("F1") + "m\n" +
             "Hedefe Uzaklik: " + (targetZ - rampTopZ).ToString("F0") + "m\n\n" +
             "Play tusuna bas ve dene!",
             "Gaz ver!");
