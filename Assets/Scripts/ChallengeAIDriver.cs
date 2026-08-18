@@ -144,31 +144,41 @@ public class ChallengeAIDriver : MonoBehaviour
     {
         if (currentState == State.Driving)
         {
-            // Rampanın açısına göre yukarı yönlü vektörü de al
-            Vector3 fwd = transform.forward;
-
             float targetSpeedMs = targetTopSpeedKmh / 3.6f; // 111.11 m/s = 400 km/h
-            Vector3 curVel = rb.linearVelocity;
-            float curFwdSpeed = Vector3.Dot(curVel, fwd);
-
-            // Anında 400 km/s'ye fırlat (0-400 km/s 1.5 saniye):
             float accelRate = 75f; // m/s^2 hiper ivmelenme
-            float newFwdSpeed = Mathf.MoveTowards(curFwdSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
+            float curZ = transform.position.z;
 
-            // Hem yolda hem rampada tepeye kadar tam 400 km/s itiş uygula
-            rb.linearVelocity = fwd * newFwdSpeed;
-
-            // Rampa öncesi şeridi tam ortala
-            if (transform.position.z < 35f)
+            // 1. DÜZ OTOBANDA (Rampadan Önce: Z < 40) -> ASLA HAVALANMAZ, YERE YAPIŞIK
+            if (curZ < 40f)
             {
+                float curFwdSpeed = rb.linearVelocity.z;
+                float newFwdSpeed = Mathf.MoveTowards(curFwdSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
+
+                // Yön kesinlikle düz ileri, Y dikey kuvveti aşağı (asfalta yapıştır)
+                rb.linearVelocity = new Vector3(0f, -6f, newFwdSpeed);
+
+                // Arabanın burnunu düz tut (asla havalanmasın)
+                transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+
+                // Şeridi tam ortala
                 Vector3 pos = transform.position;
                 pos.x = Mathf.Lerp(pos.x, 0f, Time.fixedDeltaTime * 10f);
                 transform.position = pos;
             }
+            // 2. RAMPADA (40 <= Z < 95) -> TAM 18 DERECE EĞİMLE TIRMAN
+            else
+            {
+                Vector3 rampDir = Quaternion.Euler(-18f, 0f, 0f) * Vector3.forward;
+                float curRampSpeed = Vector3.Dot(rb.linearVelocity, rampDir);
+                float newRampSpeed = Mathf.MoveTowards(curRampSpeed, targetSpeedMs, accelRate * Time.fixedDeltaTime);
+
+                rb.linearVelocity = rampDir * newRampSpeed;
+                transform.rotation = Quaternion.Euler(-18f, 0f, 0f);
+            }
         }
         else if (currentState == State.InAir)
         {
-            // Havadayken füze gibi burnunu hedefe kitle ve stabil tut
+            // Havadayken füze gibi burnunu hedefe kitle ve aerodinamik olarak stabil tut
             Vector3 currentUp = transform.up;
             Vector3 desiredUp = Vector3.up;
             Vector3 rotAxis = Vector3.Cross(currentUp, desiredUp);
